@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<!--
+Created using JS Bin
+http://jsbin.com
+
+Copyright (c) 2019 by deslaget (http://jsbin.com/mikinac/81/edit)
+
+Released under the MIT license: http://jsbin.mit-license.org
+-->
+<meta name="robots" content="noindex">
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width">
+  <title>JS Bin</title>
+<style id="jsbin-css">
+#myCanvas{
+  border :1px solid black;
+  background-color:lightgrey;
+  background:url("https://cdn2.vectorstock.com/i/1000x1000/42/86/beach-top-view-cartoon-vector-18834286.jpg");
+}
+</style>
+</head>
+<body>
+  <h2>Cliquez pour commencer</h2>
+  <canvas id="myCanvas" width="1000" height="700"></canvas>
+<script id="jsbin-javascript">
+window.onload=waitClick();
+
+function init(){
+  console.log("Page chargée");
+  canvas = document.querySelector("#myCanvas");
+  largeur = canvas.width;
+  hauteur = canvas.height;
+
+  ctx = canvas.getContext("2d");
+  
+  creerChar(2);
+  
+  //Si un char apparait sur un autre on le change de place 
+  while(getDistance(tableauDesChars[0].x,tableauDesChars[0].y,tableauDesChars[1].x,tableauDesChars[1].y)<200){
+    tableauDesChars[0].x = Math.random() * largeur;
+    tableauDesChars[0].y = Math.random() * hauteur;
+  }
+  
+  requestAnimationFrame(anime60fps);
+  
+  tireObus();
+}
+
+function waitClick(){
+  canvas = document.querySelector("#myCanvas");
+  canvas.addEventListener('click',function(){
+    init();
+  },false);
+}
+class Char{
+  constructor(x, y, width, height, vx, vy, color, xObus, yObus, vObus, audio){
+    this.x=x;
+    this.y=y;
+    this.width=width;
+    this.height=height;
+    this.vx=vx;
+    this.vy=vy;
+    this.color=color;
+    this.xObus=xObus;
+    this.yObus=yObus;
+    this.vObus=vObus;
+    this.audio=audio;
+  }
+  draw(ctx) {
+    ctx.fillStyle = this.color;
+    ctx.fillRect(this.x, this.y, this.width, this.height);
+    
+  }
+  drawChenilles(ctx){
+    ctx.fillStyle = "brown";
+    ctx.fillRect(this.x+20, this.y-20, this.width-40, 20);
+    ctx.fillRect(this.x+20, this.y+this.height, this.width-40, 20);
+  }
+  drawTop(ctx){
+    ctx.fillStyle = "rgb(169,169,169)";
+    ctx.fillRect(this.x+75, this.y+30, 50, 50);
+    ctx.fillRect(this.x+120, this.y+45, 100, 20);
+    ctx.strokeRect(this.x+190, this.y+45, 30, 20);
+    ctx.fillStyle = "grey";
+    ctx.fillRect(this.x+89, this.y+42, 25, 25);
+
+  }
+  drawObus(ctx){
+    ctx.fillStyle = "red";
+    ctx.fillRect(this.xObus, this.yObus, 25, 15);
+    
+    ctx.arc(75, 75, 35, 0, Math.PI, false);
+  }
+
+  
+  move(){
+    this.x += this.vx;
+    this.y += this.vy;
+  }
+  
+  moveObus(){
+    this.xObus += this.vObus;
+  }
+  
+  toucheCoule(color){
+    this.color=color;
+    setTimeout("resetColor()", 2000);
+  }
+  
+}
+
+function resetColor(){
+  tableauDesChars.forEach((ch) => {
+    ch.toucheCoule("lightgrey");
+  });
+}
+
+function anime60fps() {
+  
+    // 1 On efface le canvas
+    ctx.clearRect(0, 0, largeur, hauteur);
+
+    // 2 On dessine
+    dessineChar();
+
+    // 3 On change l'état (position, couleur, taille etc.)
+    deplacerChar();
+  
+    
+
+    dessineObus();
+      
+    deplacerObus();
+      
+      
+    checkBordures();
+  
+    //checkCharAutour();
+  
+    collisionObus();
+  
+    requestAnimationFrame(anime60fps);
+  
+}
+
+function creerChar(nb) {
+  tableauDesChars = [];
+  
+  for(let i = 0; i < nb; i++) {
+    let x = Math.random() * largeur;
+    let y  = Math.random() * hauteur;
+    let l = 200;
+    let h = 100;
+    let vx = 3;
+    let vy = 2;
+    let c = "lightgrey";
+    let xo = x+202;
+    let yo = y+47;
+    let vo = 15;
+    let audio = new Audio('http://s1download-universal-soundbank.com/mp3/sounds/9774.mp3');
+    
+    let char = new Char(x, y, l, h, vx, vy, c, xo, yo, vo, audio);
+    
+    tableauDesChars.push(char);
+  }
+  
+}
+
+function dessineChar(){
+  tableauDesChars.forEach((ch) => {
+    ch.draw(ctx);
+    ch.drawChenilles(ctx);
+    ch.drawTop(ctx);
+  })
+}
+
+function dessineObus(){
+  tableauDesChars.forEach((ch) => {
+    ch.drawObus(ctx);
+  })
+}
+
+function deplacerChar() {
+  tableauDesChars.forEach((ch) => {
+    ch.move();
+  });
+}
+
+function deplacerObus() {
+  tableauDesChars.forEach((ch) => {
+    ch.moveObus(ctx);
+  });
+}
+
+function checkBordures() {
+  tableauDesChars.forEach((ch) => {
+    if(((ch.x+ch.width) > largeur)) {
+        ch.vx = -ch.vx;
+        // on remet au point de contact
+        ch.x  = largeur - ch.width;
+    }
+    
+    if(ch.x < 0) {
+        ch.vx = -ch.vx;
+        // on remet au point de contact
+        ch.x = 0
+    }
+    
+     if((ch.y+ch.height) > hauteur) {
+       ch.vy = -ch.vy;
+       ch.y = hauteur - ch.height;
+     };
+  
+     if(ch.y < 0)  {
+       ch.vy = -ch.vy;
+       ch.y = 0;
+     };
+  });
+}
+
+function getDistance(x1,y1,x2,y2){
+  let xDistance = x2-x1;
+  let yDistance = y2-y1;
+  
+  return Math.sqrt(Math.pow(xDistance, 2)+Math.pow(yDistance, 2))
+  
+}
+
+//Empeche les collision des chars mais vu qu'ils partent
+//dans l'autre sens le paterne se repette
+function checkCharAutour() {
+
+  var nbChar = 0;
+  tableauDesChars.forEach((ch) => {
+    nbChar++;
+  });
+     
+    //Si ca se touche en x
+    if((tableauDesChars[1].x)-(tableauDesChars[0].x)<= 200&& (tableauDesChars[1].x)-(tableauDesChars[0].x)>-200){
+       //Si ca se touche en y
+      if((tableauDesChars[1].y)-(tableauDesChars[0].y)<= 120&& (tableauDesChars[1].y)-(tableauDesChars[0].y)>-120){
+        
+        
+        tableauDesChars[0].vx= -(tableauDesChars[0].vx);
+        tableauDesChars[1].vx= -(tableauDesChars[1].vx);
+        
+        tableauDesChars[0].vy= -(tableauDesChars[0].vy);
+        tableauDesChars[1].vy= -(tableauDesChars[1].vy);
+      }
+    }  
+ 
+}
+
+ function tireObus() {
+   
+   tableauDesChars[0].audio.play();
+   setTimeout("initObus()", (3+Math.random()*10)*1000);  
+ }
+
+function initObus() {
+   tableauDesChars.forEach((ch) => {
+    ch.xObus = ch.x+202;
+    ch.yObus = ch.y+47;
+  });
+  tireObus();
+   
+   
+ }
+function collisionObus(){
+  
+  if (getDistance(tableauDesChars[0].x,tableauDesChars[0].y,tableauDesChars[1].xObus,tableauDesChars[1].yObus)<=200){
+    
+    if (getDistance(tableauDesChars[0].x,tableauDesChars[0].y,tableauDesChars[1].xObus,tableauDesChars[1].yObus)>0){
+        tableauDesChars[0].toucheCoule("red");
+    }
+  }
+  
+  if (getDistance(tableauDesChars[1].x,tableauDesChars[1].y,tableauDesChars[0].xObus,tableauDesChars[0].yObus)<=200){
+    
+    if (getDistance(tableauDesChars[1].x,tableauDesChars[1].y,tableauDesChars[0].xObus,tableauDesChars[0].yObus)>0){
+        tableauDesChars[1].toucheCoule("red");
+    }
+  }
+  
+}
+
+
+
+
+
+
+
+</script>
+</body>
+</html>
